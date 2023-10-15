@@ -6,6 +6,7 @@
 #include <vector>
 
 #define STARTING_SNAKE_SIZE 1
+#define DEBUG_PRINT true
 
 struct Cell {
   int state;
@@ -127,41 +128,43 @@ void printGame(gameState g) {
         case 0:
           std::cout << '.';
           break;
-
-        case 1:
-          std::cout << '#';
-          break;
-
         case -1:
           std::cout << '*';
           break;
         default:
-          std::cout << '#';
+          if (DEBUG_PRINT) {
+            std::cout << elem.state;
+          } else {
+            std::cout << '#';
+          }
           break;
       }
+      std::cout << ' ';
     }
     std::cout << std::endl;
   }
 }
 
 int main(int argc, char *argv[]) {
-  gameState *g = createGame(10, 20);
+  gameState *g = createGame(12, 12);
   printGame(*g);
-  float gameSpeed = 450.0;  // delay between inputs, in ms
+  float gameSpeed = 160.0;  // delay between inputs, in ms
   char input;
   input = waitForCharInput(gameSpeed);
   int dir = 0;
 
   while (input != 'q') {  // while we have not quit the game
-    if (input == 'd') dir = 0;
-    if (input == 's') dir = 1;
-    if (input == 'a') dir = 2;
-    if (input == 'w') dir = 3;
+    // direction only changes at 90 deg incremets, instant 180 turn not possible
+    if (input == 'd' && dir != 2) dir = 0;
+    if (input == 's' && dir != 3) dir = 1;
+    if (input == 'a' && dir != 0) dir = 2;
+    if (input == 'w' && dir != 1) dir = 3;
     makeMove(g, dir);
     printGame(*g);
     input = waitForCharInput(gameSpeed);
 
-    // TODO: reduce gameSpeed gradually
+    // TODO: increase gameSpeed gradually: NOTE refactor variable name, it is
+    // confusing
   }
   free(g);
   return 0;
