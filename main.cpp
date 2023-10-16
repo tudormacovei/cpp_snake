@@ -8,70 +8,85 @@
 #define STARTING_SNAKE_SIZE 1
 #define DEBUG_PRINT true
 
+// TODO: change Cell to use an enum to make things more readable
+
 struct Cell {
   int state;
 };
 
 struct gameState {
-  std::vector<std::vector<Cell>> gameBoard;
-  int rows;
-  int cols;
-  int snake_size;
+  std::vector<std::vector<Cell>> gameBoard{};
+  unsigned int rows{};
+  unsigned int cols{};
+  unsigned int snake_size{};
 };
 
 /**
- * Gets: number of seconds to wait for user input
+ * Gets: number of miliseconds to wait for user input
  * Returns: '_' if there was no input, otherwise returns the char inputed
  *
  * N.B. : _kbhit() and _getch() are non-deprecated C++ versions of these conio.h
  * functions
  **/
 char waitForCharInput(float seconds) {
-  char c = '_';  // default return
-  float interval = seconds / 10.0;
-  while (seconds > 0) {
-    if (_kbhit()) {  // if there is a key in keyboard buffer
-      c = _getch();  // get the char
-      break;         // we got char! No need to wait anymore...
+  char c{'_'};     // Player input, default value is 'no input'
+  int interval{};  // Interval between keyboard polls
+  int total_ms{};  // total time (in ms) to pause execution for in this function
+
+  interval = int((seconds * 1000.f) / 20.0f);
+  total_ms = int(seconds *
+                 1000.f);  // convert given seconds to miliseconds, needed since
+                           // Sleep() takes an unsigned int, not a float value
+  while (total_ms > 0) {
+    if (_kbhit()) {        // if there is a key in keyboard buffer
+      c = char(_getch());  // get the char
+      break;               // we got char! No need to wait anymore...
     }
 
-    Sleep(interval);      // one second sleep
-    seconds -= interval;  // countdown a second
+    Sleep(DWORD(interval));  // 'interval' miliseconds of sleep
+    total_ms -= interval;
   }
-  Sleep(seconds);
+  // we got the keystroke but still wait for remaining time
+  // so that refresh rate (perceived game speed) is constant
+  Sleep(DWORD(total_ms));
   return c;
 }
 
-gameState *createGame(int rows, int cols) {
+gameState *createGame(unsigned int rows, unsigned int cols) {
   gameState *g = new gameState;
   g->rows = rows;
   g->cols = cols;
   g->snake_size = STARTING_SNAKE_SIZE;
-  int food_i = rand() % g->rows;
-  int food_j = rand() % g->cols;
-  for (int i = 0; i < rows; i++) {
+
+  // set a random position for the 'food' Cell
+  unsigned int food_i{};
+  food_i = (unsigned int)(rand()) % g->rows;
+  unsigned int food_j{};
+  food_j = (unsigned int)(rand()) % g->cols;
+
+  for (unsigned int i = 0; i < rows; i++) {
     std::vector<Cell> temp;
-    for (int j = 0; j < cols; j++) {
+    for (unsigned int j = 0; j < cols; j++) {
       Cell tempCell;
       tempCell.state = 0;
-      if (i == (rows / 2) && j == (cols / 2))
-        tempCell.state = 1;            // square of head of snake
-      if (i == food_i && j == food_j)  // food has not been spawned
-        tempCell.state = -1;           // food state
-
       temp.push_back(tempCell);
     }
     g->gameBoard.push_back(temp);
   }
+  g->gameBoard[rows / 2][cols / 2].state = 1;  // Head of snake
+  g->gameBoard[food_i][food_j].state = -1;     // Food 'state'
+
   return g;
 }
 
 void makeMove(gameState *g, int dir) {
   // if/else for processing the input
-  int head_i = -1, head_j = -1;
-  int food_i = -1, food_j = -1;
-  for (int i = 0; i < (g->gameBoard).size(); i++) {
-    for (int j = 0; j < (g->gameBoard)[i].size(); j++) {
+  unsigned head_i{};
+  unsigned head_j{};
+  unsigned food_i{};
+  unsigned food_j{};
+  for (unsigned int i = 0; i < (g->gameBoard).size(); i++) {
+    for (unsigned int j = 0; j < (g->gameBoard)[i].size(); j++) {
       Cell *elem = &(g->gameBoard)[i][j];
       if (elem->state == 1) {
         head_i = i;
@@ -82,7 +97,7 @@ void makeMove(gameState *g, int dir) {
         food_j = j;
       } else if (elem->state != 0)
         elem->state += 1;  // increase age of snake pieces
-      if (elem->state > g->snake_size) {
+      if (elem->state > int(g->snake_size)) {
         elem->state = 0;
       }
     }
@@ -108,15 +123,15 @@ void makeMove(gameState *g, int dir) {
   }
   (g->gameBoard)[head_i][head_j].state = 1;  // head has lowest age (1)
 
-  int has_eaten = 0;
+  bool has_eaten = false;
   // find an unoccupied spot to place food
   while ((g->gameBoard)[food_i][food_j].state != 0 &&
          (g->gameBoard)[food_i][food_j].state != -1) {
-    has_eaten = 1;
-    food_i = rand() % g->rows;
-    food_j = rand() % g->cols;
+    has_eaten = true;
+    food_i = (unsigned int)(rand()) % g->rows;
+    food_j = (unsigned int)(rand()) % g->cols;
   }
-  g->snake_size += has_eaten;
+  g->snake_size += has_eaten ? 1 : 0;
   (g->gameBoard)[food_i][food_j].state = -1;
 }
 
@@ -145,10 +160,10 @@ void printGame(gameState g) {
   }
 }
 
-int main(int argc, char *argv[]) {
+int main([[maybe_unused]] int argc, [[maybe_unused]] char *argv[]) {
   gameState *g = createGame(12, 12);
   printGame(*g);
-  float gameSpeed = 160.0;  // delay between inputs, in ms
+  float gameSpeed = 0.2f;  // delay between inputs, in ms
   char input;
   input = waitForCharInput(gameSpeed);
   int dir = 0;
