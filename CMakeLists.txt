@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.13)  # CMake version check
 project(cpp_snake_game)               # Create project "cpp_snake_game
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 
 # Declare variable with compile flags, pedantic-errors makes sure that we adhere to the C++ standard
 # And that no compiler extensions will be allowed

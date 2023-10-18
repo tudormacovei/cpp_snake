@@ -1,12 +1,15 @@
 #include <conio.h>
 #include <stdlib.h> /* srand, rand */
+#include <unistd.h>
 #include <windows.h>
 
+#include <chrono>
 #include <iostream>
+#include <thread>
 #include <vector>
 
 #define STARTING_SNAKE_SIZE 1
-#define DEBUG_PRINT true
+#define DEBUG_PRINT false
 
 // TODO: change Cell to use an enum to make things more readable
 
@@ -33,22 +36,23 @@ char waitForCharInput(float seconds) {
   int interval{};  // Interval between keyboard polls
   int total_ms{};  // total time (in ms) to pause execution for in this function
 
-  interval = int((seconds * 1000.f) / 20.0f);
+  interval = int((seconds * 1000.f) / 50.0f);
   total_ms = int(seconds *
                  1000.f);  // convert given seconds to miliseconds, needed since
                            // Sleep() takes an unsigned int, not a float value
+  // TODO: switch to ncurses instead of _kbhit at some point
   while (total_ms > 0) {
+    total_ms -= interval;
+    Sleep(DWORD(interval));  // 'interval' miliseconds of sleep
+
     if (_kbhit()) {        // if there is a key in keyboard buffer
       c = char(_getch());  // get the char
       break;               // we got char! No need to wait anymore...
     }
-
-    Sleep(DWORD(interval));  // 'interval' miliseconds of sleep
-    total_ms -= interval;
   }
   // we got the keystroke but still wait for remaining time
   // so that refresh rate (perceived game speed) is constant
-  Sleep(DWORD(total_ms));
+  // if (total_ms > 0) Sleep(DWORD(total_ms));
   return c;
 }
 
@@ -156,14 +160,14 @@ void printGame(gameState g) {
       }
       std::cout << ' ';
     }
-    std::cout << std::endl;
+    std::cout << '\n';
   }
 }
 
 int main([[maybe_unused]] int argc, [[maybe_unused]] char *argv[]) {
   gameState *g = createGame(12, 12);
   printGame(*g);
-  float gameSpeed = 0.2f;  // delay between inputs, in ms
+  float gameSpeed = 0.5f;  // delay between inputs, in ms
   char input;
   input = waitForCharInput(gameSpeed);
   int dir = 0;
