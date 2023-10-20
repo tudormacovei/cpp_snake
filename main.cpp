@@ -15,6 +15,7 @@
 
 struct Cell {
   int state;
+  int direction;
 };
 
 struct gameState {
@@ -23,6 +24,30 @@ struct gameState {
   unsigned int cols{};
   unsigned int snake_size{};
 };
+
+char cellDirectionToChar(Cell c) {
+  switch (c.direction) {
+    case 0:
+      return '>';
+      break;
+
+    case 1:
+      return 'v';
+      break;
+
+    case 2:
+      return '<';
+      break;
+
+    case 3:
+      return '^';
+      break;
+
+    default:
+      break;
+  }
+  return '_';
+}
 
 /**
  * Gets: number of miliseconds to wait for user input
@@ -126,6 +151,7 @@ void makeMove(gameState *g, int dir) {
       break;
   }
   (g->gameBoard)[head_i][head_j].state = 1;  // head has lowest age (1)
+  (g->gameBoard)[head_i][head_j].direction = dir;
 
   bool has_eaten = false;
   // find an unoccupied spot to place food
@@ -139,32 +165,10 @@ void makeMove(gameState *g, int dir) {
   (g->gameBoard)[food_i][food_j].state = -1;
 }
 
-void printGame(gameState g) {
-  system("cls");
-  for (auto line : g.gameBoard) {
-    for (auto elem : line) {
-      switch (elem.state) {
-        case 0:
-          std::cout << '.';
-          break;
-        case -1:
-          std::cout << '*';
-          break;
-        default:
-          if (DEBUG_PRINT) {
-            std::cout << elem.state;
-          } else {
-            std::cout << '#';
-          }
-          break;
-      }
-      std::cout << ' ';
-    }
-    std::cout << '\n';
-  }
-}
+void printGame(gameState g);  // fw declaration
 
-int main([[maybe_unused]] int argc, [[maybe_unused]] char *argv[]) {
+// executes the game, returns the score obtained
+int mainGameLoop() {
   gameState *g = createGame(12, 12);
   printGame(*g);
   float gameSpeed = 0.5f;  // delay between inputs, in ms
@@ -186,5 +190,144 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char *argv[]) {
     // confusing
   }
   free(g);
+
+  return int(g->snake_size);
+}
+
+struct Button {
+  std::string text{};
+  bool selected{false};
+  int resultingState{};  // what state the game is put into if button is
+                         // selected
+};
+
+void printTitle() {
+  std::cout
+      << "      ___           ___           ___           ___           ___    "
+         " \n     /\\  \\         /\\__\\         /\\  \\         /\\__\\      "
+         "   /\\  \\    \n    /::\\  \\       /::|  |       /::\\  \\       "
+         "/:/  /        /::\\  \\   \n   /:/\\ \\  \\     /:|:|  |      "
+         "/:/\\:\\  \\     /:/__/        /:/\\:\\  \\  \n  _\\:\\~\\ \\  \\   "
+         "/:/|:|  |__   /::\\~\\:\\  \\   /::\\__\\____   /::\\~\\:\\  \\ \n "
+         "/\\ \\:\\ \\ \\__\\ /:/ |:| /\\__\\ /:/\\:\\ \\:\\__\\ "
+         "/:/\\:::::\\__\\ /:/\\:\\ \\:\\__\\\n \\:\\ \\:\\ \\/__/ \\/__|:|/:/ "
+         " / \\/__\\:\\/:/  / \\/_|:|~~|~    \\:\\~\\:\\ \\/__/\n  \\:\\ "
+         "\\:\\__\\       |:/:/  /       \\::/  /     |:|  |      \\:\\ "
+         "\\:\\__\\  \n   \\:\\/:/  /       |::/  /        /:/  /      |:|  |  "
+         "     \\:\\ \\/__/  \n    \\::/  /        /:/  /        /:/  /       "
+         "|:|  |        \\:\\__\\    \n     \\/__/         \\/__/         "
+         "\\/__/         \\|__|         \\/__/";
+}
+
+void printBottom(int highScore, bool isPaused,
+                 int currScore) {  // should probably make a gameState struct
+  if (isPaused)
+    std::cout << "Press 'W' and 'S' to navigate. Press SPACE to "
+                 "select current option. HIGH SCORE: "
+              << highScore;
+  else
+    std::cout
+        << "Controls: W, A, S, D. Press Q to exit to menu. CURRENT SCORE: "
+        << currScore;
+  std::cout << std::endl;
+}
+
+void printGame(gameState g) {
+  system("cls");
+  for (unsigned int i = 0; i < g.cols + 1; i++) {
+    std::cout << '-' << '-';
+  }
+  std::cout << '\n';
+  for (auto line : g.gameBoard) {
+    std::cout << '|';
+    for (auto elem : line) {
+      switch (elem.state) {
+        case 0:
+          std::cout << ' ';
+          break;
+        case -1:
+          std::cout << '*';
+          break;
+        default:
+          if (DEBUG_PRINT) {
+            std::cout << elem.state;
+          } else {
+            std::cout << cellDirectionToChar(elem);
+          }
+          break;
+      }
+      std::cout << ' ';
+    }
+    std::cout << '|' << '\n';
+  }
+  for (unsigned int i = 0; i < g.cols + 1; i++) {
+    std::cout << '-' << '-';
+  }
+  std::cout << std::endl;
+  printBottom(0, false, int(g.snake_size));
+}
+
+void printPause(std::vector<Button> buttons, int highScore) {
+  std::cout << std::endl;
+  system("cls");
+
+  std::string indentString = "            ";  // 12 spaces
+  printTitle();
+  std::cout << "\n\n\n";
+
+  for (auto button : buttons) {
+    std::string outstr = button.text;
+    if (button.selected)
+      std::transform(outstr.begin(), outstr.end(), outstr.begin(), ::toupper);
+    std::cout << indentString << outstr << "\n\n\n";
+  }
+  printBottom(highScore, true, 0);
+}
+
+int pauseScreenLoop(int highScore) {
+  char input{'_'};
+  unsigned int currentlySelected{0};  // currently selected button
+
+  std::vector<Button> buttons;
+  Button playButton;
+  Button quitButton;
+  playButton.text = "Play";
+  playButton.resultingState = 1;
+
+  quitButton.text = "Quit";
+  quitButton.resultingState = 0;
+
+  buttons.push_back(playButton);
+  buttons.push_back(quitButton);
+
+  while (input != 'q') {  // while we have not quit the game
+    buttons[currentlySelected].selected = false;
+
+    if (input == 's') currentlySelected++;
+    if (input == 'w' && currentlySelected != 0) currentlySelected--;
+    if (input == ' ') return (buttons[currentlySelected]).resultingState;
+
+    // make sure it is well-defined
+    currentlySelected =
+        std::min((unsigned int)(std::max((unsigned int)0, currentlySelected)),
+                 (unsigned int)(buttons.size() - 1));
+
+    buttons[currentlySelected].selected = true;
+    printPause(buttons, highScore);
+
+    input = waitForCharInput(0.2f);
+  }
+  return 0;  // quit game
+}
+
+int main([[maybe_unused]] int argc, [[maybe_unused]] char *argv[]) {
+  int highScore{0};
+  int gameState{0};  // 0 = quit, 1 = start screen, 2 = playing
+  while ((gameState = pauseScreenLoop(highScore))) {
+    if (gameState == 1) {
+      highScore = std::max(mainGameLoop(), highScore);
+    }
+  }
+  // show quit screen
   return 0;
 }
