@@ -8,6 +8,11 @@
 #include <thread>
 #include <vector>
 
+// the number of characters on a 'full' line, used for text centering
+#define LINE_CHAR_SIZE 69
+#define LINE_CHAR_SIZE_HALF 34
+
+// game variables
 #define STARTING_SNAKE_SIZE 1
 #define DEBUG_PRINT false
 
@@ -221,6 +226,8 @@ void printTitle() {
 
 void printBottom(int highScore, bool isPaused,
                  int currScore) {  // should probably make a gameState struct
+  std::string separatorString(LINE_CHAR_SIZE, char(196));
+  std::cout << separatorString << '\n';
   if (isPaused)
     std::cout << "Press 'W' and 'S' to navigate. Press SPACE to "
                  "select current option. HIGH SCORE: "
@@ -233,13 +240,18 @@ void printBottom(int highScore, bool isPaused,
 }
 
 void printGame(gameState g) {
+  int indentAmount{};
+  char gameOutlineChar = char(177);
+
   system("cls");
-  for (unsigned int i = 0; i < g.cols + 1; i++) {
-    std::cout << '-' << '-';
-  }
-  std::cout << '\n';
+
+  indentAmount = LINE_CHAR_SIZE_HALF - int(g.cols);
+  std::string indentString((unsigned int)(indentAmount), ' ');
+  std::string horizontalOutlineString((2 * (g.cols + 1)), gameOutlineChar);
+
+  std::cout << '\n' << indentString << horizontalOutlineString << '\n';
   for (auto line : g.gameBoard) {
-    std::cout << '|';
+    std::cout << indentString << gameOutlineChar;
     for (auto elem : line) {
       switch (elem.state) {
         case 0:
@@ -258,13 +270,24 @@ void printGame(gameState g) {
       }
       std::cout << ' ';
     }
-    std::cout << '|' << '\n';
+    std::cout << gameOutlineChar << '\n';
   }
-  for (unsigned int i = 0; i < g.cols + 1; i++) {
-    std::cout << '-' << '-';
-  }
-  std::cout << std::endl;
+  std::cout << indentString << horizontalOutlineString << std::endl;
   printBottom(0, false, int(g.snake_size));
+}
+
+void printButton(Button button) {
+  int indentAmount{};
+  char outlinechar{button.selected ? char(177) : ' '};
+
+  indentAmount = LINE_CHAR_SIZE_HALF - int(button.text.size() / 2) + 1;
+  std::string indentString((unsigned int)(indentAmount), ' ');
+
+  std::string horizontalOutlineString((button.text.size() + 2), outlinechar);
+  std::cout << '\n'
+            << indentString << horizontalOutlineString << '\n'
+            << indentString << outlinechar << button.text << outlinechar << '\n'
+            << indentString << horizontalOutlineString << '\n';
 }
 
 void printPause(std::vector<Button> buttons, int highScore) {
@@ -276,10 +299,7 @@ void printPause(std::vector<Button> buttons, int highScore) {
   std::cout << "\n\n\n";
 
   for (auto button : buttons) {
-    std::string outstr = button.text;
-    if (button.selected)
-      std::transform(outstr.begin(), outstr.end(), outstr.begin(), ::toupper);
-    std::cout << indentString << outstr << "\n\n\n";
+    printButton(button);
   }
   printBottom(highScore, true, 0);
 }
